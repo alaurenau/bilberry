@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "de.gesellix"
-version = "0.0.11"
+version = "0.0.12"
 
 String repoName = 'bilberry'
 
