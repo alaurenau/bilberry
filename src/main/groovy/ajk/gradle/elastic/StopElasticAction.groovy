@@ -7,6 +7,8 @@ import org.gradle.api.tasks.Optional
 import static ajk.gradle.elastic.ElasticPlugin.*
 import static org.apache.http.client.fluent.Executor.newInstance
 import static org.apache.http.client.fluent.Request.Post
+import static org.apache.tools.ant.taskdefs.condition.Os.FAMILY_WINDOWS
+import static org.apache.tools.ant.taskdefs.condition.Os.isFamily
 
 class StopElasticAction {
 
@@ -37,8 +39,8 @@ class StopElasticAction {
         println "${CYAN}* elastic:$NORMAL stopping ElasticSearch"
 
         try {
+            def pidFile = new File(elastic.home, 'elastic.pid')
             if (elastic.version.startsWith("2")) {
-                def pidFile = new File(elastic.home, 'elastic.pid')
                 if (!pidFile.exists()) {
                     println "${RED}* elastic:$NORMAL ${pidFile} not found"
                     println "${RED}* elastic:$NORMAL could not stop ElasticSearch, please check manually!"
@@ -46,8 +48,11 @@ class StopElasticAction {
                 }
                 def elasticPid = pidFile.text
                 println "${CYAN}* elastic:$NORMAL going to kill pid $elasticPid"
-
-                "kill $elasticPid".execute()
+                if (isFamily(FAMILY_WINDOWS)) {
+                    "cmd /c \"taskkill /f /pid $elasticPid\"".execute()
+                } else {
+                    "kill $elasticPid".execute()
+                }
             } else {
                 newInstance().execute(Post("http://localhost:${httpPort ?: 9200}/_shutdown"))
             }
@@ -63,6 +68,9 @@ class StopElasticAction {
                 println "${RED}* elastic:$NORMAL could not stop ElasticSearch"
                 throw new RuntimeException("failed to stop ElasticSearch")
             } else {
+                if (isFamily(FAMILY_WINDOWS)) {
+                    pidFile.delete()
+                }
                 println "${CYAN}* elastic:$NORMAL ElasticSearch is now down"
             }
         } catch (ConnectException e) {
