@@ -76,27 +76,30 @@ class StartElasticAction {
         dataDir.mkdirs()
 
         File esScript = new File("${elastic.home}/bin/elasticsearch${isFamily(FAMILY_WINDOWS) ? '.bat' : ''}")
+        def environment = [
+                "JAVA_HOME=${System.properties['java.home']}",
+                "ES_HOME=$elastic.home",
+                "ES_MAX_MEM=512m",
+                "ES_MIN_MEM=128m"
+        ]
+
         def command = [
                 esScript.absolutePath,
                 "-Des.http.port=$httpPort",
                 "-Des.transport.tcp.port=$transportPort",
                 "-Des.path.data=$dataDir",
                 "-Des.path.logs=$logsDir",
-                "-Des.discovery.zen.ping.multicast.enabled=false"
+                "-Des.discovery.zen.ping.multicast.enabled=false",
+                "-p${pidFile}"
         ]
 
-        if (!isFamily(FAMILY_WINDOWS)) {
-            command += [
-                    "-p${pidFile}"
+        if (isFamily(FAMILY_WINDOWS)) {
+            environment += [
+                    "TEMP=${System.env['TEMP']}"
             ]
         }
 
-        command.execute([
-                "JAVA_HOME=${System.properties['java.home']}",
-                "ES_HOME=$elastic.home",
-                "ES_MAX_MEM=512m",
-                "ES_MIN_MEM=128m"
-        ], elastic.home)
+        command.execute(environment, elastic.home)
 
         println "${CYAN}* elastic:$NORMAL waiting for ElasticSearch to start"
         ant.waitfor(maxwait: 2, maxwaitunit: "minute", timeoutproperty: "elasticTimeout") {
