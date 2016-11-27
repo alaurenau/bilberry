@@ -40,7 +40,7 @@ class StopElasticAction {
 
         try {
             def pidFile = new File(elastic.home, 'elastic.pid')
-            if (elastic.version.startsWith("2")) {
+            if (elastic.version.startsWith("2") || elastic.version.startsWith("5")) {
                 if (!pidFile.exists()) {
                     println "${RED}* elastic:$NORMAL ${pidFile} not found"
                     println "${RED}* elastic:$NORMAL could not stop ElasticSearch, please check manually!"

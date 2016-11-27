@@ -68,6 +68,10 @@ class ElasticActions {
       String baseUrl = "https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution"
       linuxUrl = "${baseUrl}/tar/elasticsearch/${version}/elasticsearch-${version}.tar.gz"
       winUrl = "${baseUrl}/zip/elasticsearch/${version}/elasticsearch-${version}.zip"
+    } else if (version.startsWith("5")){
+      def baseUrl = "https://artifacts.elastic.co/downloads/elasticsearch"
+      linuxUrl = "${baseUrl}/elasticsearch-${version}.tar.gz"
+      winUrl = "${baseUrl}/elasticsearch-${version}.zip"
     } else {
       def baseUrl = "https://download.elastic.co/elasticsearch/elasticsearch"
       linuxUrl = "${baseUrl}/elasticsearch-${version}.tar.gz"
@@ -100,7 +104,7 @@ class ElasticActions {
 
     new File("$home/version.txt").write(version)
 
-    if (withPlugins.contains("head plugin")) {
+    if (withPlugins.contains("head plugin") && !version.startsWith("5")) {
       println "* elastic: installing the head plugin"
       String plugin = "$home/bin/plugin"
       if (isFamily(FAMILY_WINDOWS)) {

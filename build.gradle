@@ -13,7 +13,7 @@ plugins {
 }
 
 group = "de.gesellix"
-version = "0.0.12"
+version = "0.0.14"
 
 String repoName = 'bilberry'
 
@@ -32,8 +32,7 @@ repositories {
 
 dependencies {
   compile gradleApi()
-  compile localGroovy()
-  compile "de.undercouch:gradle-download-task:3.1.0"
+  compile "de.undercouch:gradle-download-task:3.1.2"
   compile "org.apache.httpcomponents:fluent-hc:4.5.2"
 }
 
@@ -81,8 +80,8 @@ model {
 }
 
 bintray {
-  user = System.env.BINTRAY_USER ?: project["bintray.user"]
-  key = System.env.BINTRAY_API_KEY ?: project["bintray.key"]
+  user = System.env.BINTRAY_USER
+  key = System.env.BINTRAY_API_KEY
 
   publications = ['plugin']
 
