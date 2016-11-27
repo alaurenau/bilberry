@@ -41,6 +41,10 @@ class StartElasticAction {
 
     @Input
     @Optional
+    String javaOpts
+
+    @Input
+    @Optional
     List<String> withPlugins = ["head plugin"]
 
     private Project project
@@ -85,7 +89,7 @@ class StartElasticAction {
         File esScript = new File("${elastic.home}/bin/elasticsearch${isFamily(FAMILY_WINDOWS) ? '.bat' : ''}")
 
         def paramPrefix
-        def command = []
+        def command = [esScript.absolutePath]
         def environment = []
         if (elasticVersion.startsWith("5")) {
             environment.add("ES_JAVA_OPTS=-Xms128m -Xmx512m")
@@ -96,12 +100,17 @@ class StartElasticAction {
             command.add("${paramPrefix}discovery.zen.ping.multicast.enabled=false")
         }
 
+        if (javaOpts != null) {
+            environment += [
+                "JAVA_OPTS=${javaOpts}"
+            ]
+        }
+
         environment += [
                 "JAVA_HOME=${System.properties['java.home']}",
                 "ES_HOME=$elastic.home"
         ]
         command += [
-                esScript.absolutePath,
                 "${paramPrefix}http.port=$httpPort",
                 "${paramPrefix}transport.tcp.port=$transportPort",
                 "${paramPrefix}cluster.name=$clusterName",

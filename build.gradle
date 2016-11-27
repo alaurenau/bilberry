@@ -9,10 +9,10 @@ buildscript {
 }
 
 plugins {
-  id "com.jfrog.bintray" version "1.6"
+  id "com.jfrog.bintray" version "1.7"
 }
 
-group = "de.gesellix"
+group = "by.alaurenau"
 version = "0.0.14"
 
 String repoName = 'bilberry'
@@ -90,9 +90,9 @@ bintray {
   pkg {
     repo = 'gradle-plugins'
     name = 'gradle-elastic-plugin'
-    websiteUrl = "https://github.com/gesellix/$repoName"
-    issueTrackerUrl = "https://github.com/gesellix/$repoName/issues"
-    vcsUrl = "https://github.com/gesellix/${repoName}.git"
+    websiteUrl = "https://github.com/alaurenau/$repoName"
+    issueTrackerUrl = "https://github.com/alaurenau/$repoName/issues"
+    vcsUrl = "https://github.com/alaurenau/${repoName}.git"
     licenses = ['Apache-2.0']
     labels = ['gradle', 'plugin', 'elastic', 'ElasticSearch', repoName]
     version {
