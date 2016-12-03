@@ -2,6 +2,8 @@ package ajk.gradle.elastic
 
 import de.undercouch.gradle.tasks.download.DownloadAction
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 
 import static ajk.gradle.elastic.ElasticPlugin.CYAN
 import static ajk.gradle.elastic.ElasticPlugin.NORMAL
@@ -14,13 +16,15 @@ class ElasticActions {
   Project project
   AntBuilder ant
   File home
+  Logger logger
 
   ElasticActions(Project project, File toolsDir, String version) {
     this.project = project
     this.toolsDir = toolsDir
     this.version = version
     this.ant = project.ant
-    home = new File("$toolsDir/elastic")
+    this.home = new File("$toolsDir/elastic")
+    this.logger = Logging.getLogger(this.class)
   }
 
   boolean isInstalled() {
@@ -35,9 +39,9 @@ class ElasticActions {
     def currentVersion = getCurrentVersion()
     if (!(currentVersion?.contains(version))) {
       // cleanup when the installed version doesn't match the expected version
-      println "deleting $home ..."
+      logger.info("deleting $home ...")
       ant.delete(dir: home)
-      println "deleting $toolsDir/elastic-${version}.zip ..."
+      logger.info("deleting $toolsDir/elastic-${version}.zip ...")
       ant.delete(file: "$toolsDir/elastic-${version}.zip")
 
       return false
@@ -49,18 +53,18 @@ class ElasticActions {
   String getCurrentVersion() {
     def versionInfo = new StringBuffer()
 
-    print "${CYAN}* elastic:$NORMAL checking existing version..."
+    logger.info("${CYAN}* elastic:$NORMAL checking existing version...")
     def versionFile = new File("$home/version.txt")
     if (versionFile?.isFile() && versionFile?.canRead()) {
       versionInfo = versionFile.readLines()
     }
-    println "${versionInfo ?: 'unknown'}"
+    logger.info("${versionInfo ?: 'unknown'}")
 
     return versionInfo
   }
 
   void install(List<String> withPlugins) {
-    println "${CYAN}* elastic:$NORMAL installing elastic version $version"
+    logger.lifecycle("${CYAN}* elastic:$NORMAL installing elastic version $version")
 
     String linuxUrl
     String winUrl
@@ -80,6 +84,8 @@ class ElasticActions {
 
     String elasticPackage = isFamily(FAMILY_WINDOWS) ? winUrl : linuxUrl
     File elasticFile = new File("$toolsDir/elastic-${version}.zip")
+    logger.debug("Downloading from: " + elasticPackage +
+    "\nto: " + elasticFile.absolutePath)
 
     DownloadAction elasticDownload = new DownloadAction(project)
     elasticDownload.dest(elasticFile)
@@ -105,7 +111,7 @@ class ElasticActions {
     new File("$home/version.txt").write(version)
 
     if (withPlugins.contains("head plugin") && !version.startsWith("5")) {
-      println "* elastic: installing the head plugin"
+      logger.debug("* elastic: installing the head plugin")
       String plugin = "$home/bin/plugin"
       if (isFamily(FAMILY_WINDOWS)) {
         plugin += ".bat"

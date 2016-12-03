@@ -2,6 +2,8 @@ package ajk.gradle.elastic
 
 import org.codehaus.groovy.runtime.ProcessGroovyMethods
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 
@@ -48,23 +50,33 @@ class StartElasticAction {
     List<String> withPlugins = ["head plugin"]
 
     private Project project
-
     private AntBuilder ant
+    private Logger logger
 
     StartElasticAction(Project project) {
         this.project = project
         this.ant = project.ant
+        this.logger = Logging.getLogger(this.class)
+
+        this.elasticVersion = elasticVersion ?: DEFAULT_ELASTIC_VERSION
+        this.httpPort = httpPort ?: 9200
+        this.transportPort = transportPort ?: 9300
+        this.clusterName = clusterName ?: "elasticsearch"
+        this.dataDir = dataDir ?: new File("$project.buildDir/elastic")
+        this.logsDir = logsDir ?: new File("$dataDir/logs")
     }
 
     void execute() {
         File toolsDir = toolsDir ?: new File("$project.rootDir/gradle/tools")
-        elasticVersion = elasticVersion ?: DEFAULT_ELASTIC_VERSION
+
         ElasticActions elastic = new ElasticActions(project, toolsDir, elasticVersion)
 
         def pidFile = new File(elastic.home, 'elastic.pid')
-        if (pidFile.exists() && elasticIsRunning()) {
-            println "${YELLOW}* elastic:$NORMAL ElasticSearch seems to be running at pid ${pidFile.text}"
-            println "${YELLOW}* elastic:$NORMAL please check $pidFile"
+        if (elasticIsRunning()) {
+            logger.lifecycle("${YELLOW}* elastic:$NORMAL ElasticSearch seems to be running at http://localhost:$httpPort")
+            if (pidFile.exists()) {
+                logger.lifecycle("${YELLOW}* elastic:$NORMAL ElasticSearch process id: ${pidFile.text}")
+            }
             return
         }
 
@@ -72,14 +84,10 @@ class StartElasticAction {
             elastic.install(withPlugins)
         }
 
-        httpPort = httpPort ?: 9200
-        transportPort = transportPort ?: 9300
-        clusterName = clusterName ?: "elasticsearch"
-        dataDir = dataDir ?: new File("$project.buildDir/elastic")
-        logsDir = logsDir ?: new File("$dataDir/logs")
-        println "${CYAN}* elastic:$NORMAL starting ElasticSearch at $elastic.home using http port $httpPort and tcp transport port $transportPort"
-        println "${CYAN}* elastic:$NORMAL ElasticSearch data directory: $dataDir"
-        println "${CYAN}* elastic:$NORMAL ElasticSearch logs directory: $logsDir"
+        logger.lifecycle("${CYAN}* elastic:$NORMAL Starting ElasticSearch at $elastic.home, " +
+                "http port: $httpPort, tcp transport port: $transportPort")
+        logger.lifecycle("${CYAN}* elastic:$NORMAL ElasticSearch data directory: $dataDir")
+        logger.lifecycle("${CYAN}* elastic:$NORMAL ElasticSearch logs directory: $logsDir")
 
         ant.delete(failonerror: true, dir: dataDir)
         ant.delete(failonerror: true, dir: logsDir)
@@ -125,16 +133,16 @@ class StartElasticAction {
                     "TEMP=${System.env['TEMP']}"
             ]
         }
-        println "environment: " + environment.join(" ")
-        println "arguments: " + command.join(" ")
+        logger.debug("Environment variables: " + environment.join(" "))
+        logger.debug("Arguments: " + command.join(" "))
 
         def process = command.execute(environment, elastic.home)
 
-        def sout = new StringBuffer()
-        def serr = new StringBuffer()
-        ProcessGroovyMethods.consumeProcessOutput(process, sout, serr)
+        def stdOut = new StringBuffer()
+        def stdErr = new StringBuffer()
+        ProcessGroovyMethods.consumeProcessOutput(process, stdOut, stdErr)
 
-        println "${CYAN}* elastic:$NORMAL waiting for ElasticSearch to start"
+        logger.lifecycle("${CYAN}* elastic:$NORMAL Waiting for ElasticSearch to start")
         ant.waitfor(maxwait: 1, maxwaitunit: "minute", timeoutproperty: "elasticTimeout") {
             and {
                 socket(server: "localhost", port: transportPort)
@@ -143,12 +151,12 @@ class StartElasticAction {
         }
 
         if (ant.properties['elasticTimeout'] != null) {
-            println "${RED}* elastic:$NORMAL could not start ElasticSearch, run log:"
-            println sout
-            println serr
-            throw new RuntimeException("failed to start ElasticSearch")
+            logger.error("${RED}* elastic:$NORMAL Could not start ElasticSearch, run log:")
+            logger.error(stdOut.toString())
+            logger.error(stdErr.toString())
+            throw new RuntimeException("Failed to start ElasticSearch")
         } else {
-            println "${CYAN}* elastic:$NORMAL ElasticSearch is now up and running"
+            logger.lifecycle("${CYAN}* elastic:$NORMAL ElasticSearch is now up and running")
         }
     }
 

@@ -1,6 +1,8 @@
 package ajk.gradle.elastic
 
 import org.gradle.api.Project
+import org.gradle.api.logging.Logger
+import org.gradle.api.logging.Logging
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 
@@ -26,28 +28,30 @@ class StopElasticAction {
 
     private AntBuilder ant
     private Project project
+    private Logger logger
 
     StopElasticAction(Project project) {
         this.project = project
         this.ant = project.ant
+        this.logger = Logging.getLogger(this.class)
     }
 
     void execute() {
         File toolsDir = toolsDir ?: new File("$project.rootDir/gradle/tools")
         ElasticActions elastic = new ElasticActions(project, toolsDir, elasticVersion ?: DEFAULT_ELASTIC_VERSION)
 
-        println "${CYAN}* elastic:$NORMAL stopping ElasticSearch"
+        logger.lifecycle("${CYAN}* elastic:$NORMAL Stopping ElasticSearch")
 
         try {
             def pidFile = new File(elastic.home, 'elastic.pid')
             if (elastic.version.startsWith("2") || elastic.version.startsWith("5")) {
                 if (!pidFile.exists()) {
-                    println "${RED}* elastic:$NORMAL ${pidFile} not found"
-                    println "${RED}* elastic:$NORMAL could not stop ElasticSearch, please check manually!"
+                    logger.error("${RED}* elastic:$NORMAL ${pidFile} not found, " +
+                            "could not stop ElasticSearch, please check manually!")
                     return
                 }
                 def elasticPid = pidFile.text
-                println "${CYAN}* elastic:$NORMAL going to kill pid $elasticPid"
+                logger.lifecycle("${CYAN}* elastic:$NORMAL Going to kill pid $elasticPid")
                 if (isFamily(FAMILY_WINDOWS)) {
                     "cmd /c \"taskkill /f /pid $elasticPid\"".execute()
                 } else {
@@ -57,7 +61,7 @@ class StopElasticAction {
                 newInstance().execute(Post("http://localhost:${httpPort ?: 9200}/_shutdown"))
             }
 
-            println "${CYAN}* elastic:$NORMAL waiting for ElasticSearch to shutdown"
+            logger.lifecycle("${CYAN}* elastic:$NORMAL Waiting for ElasticSearch to shutdown")
             ant.waitfor(maxwait: 2, maxwaitunit: "minute", timeoutproperty: "elasticTimeout") {
                 not {
                     ant.http(url: "http://localhost:$httpPort")
@@ -65,16 +69,17 @@ class StopElasticAction {
             }
 
             if (ant.properties['elasticTimeout'] != null) {
-                println "${RED}* elastic:$NORMAL could not stop ElasticSearch"
-                throw new RuntimeException("failed to stop ElasticSearch")
+                logger.error("${RED}* elastic:$NORMAL Could not stop ElasticSearch")
+                throw new RuntimeException("Failed to stop ElasticSearch")
             } else {
                 if (isFamily(FAMILY_WINDOWS)) {
                     pidFile.delete()
                 }
-                println "${CYAN}* elastic:$NORMAL ElasticSearch is now down"
+                logger.lifecycle("${CYAN}* elastic:$NORMAL ElasticSearch is now down")
             }
         } catch (ConnectException e) {
-            println "${CYAN}* elastic:$YELLOW warning - unable to stop elastic on http port ${httpPort ?: 9200}, ${e.message}$NORMAL"
+            logger.error("${CYAN}* elastic:$YELLOW Unable to stop elastic on http port ${httpPort ?: 9200}, " +
+                    "${e.message}$NORMAL")
         }
     }
 }
