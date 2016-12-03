@@ -62,7 +62,7 @@ class StartElasticAction {
         ElasticActions elastic = new ElasticActions(project, toolsDir, elasticVersion)
 
         def pidFile = new File(elastic.home, 'elastic.pid')
-        if (pidFile.exists()) {
+        if (pidFile.exists() && elasticIsRunning()) {
             println "${YELLOW}* elastic:$NORMAL ElasticSearch seems to be running at pid ${pidFile.text}"
             println "${YELLOW}* elastic:$NORMAL please check $pidFile"
             return
@@ -150,5 +150,14 @@ class StartElasticAction {
         } else {
             println "${CYAN}* elastic:$NORMAL ElasticSearch is now up and running"
         }
+    }
+
+    boolean elasticIsRunning() {
+        ant.waitfor(maxwait: 3, maxwaitunit: "second", timeoutproperty: "elasticIsDown") {
+            and {
+                ant.http(url: "http://localhost:$httpPort")
+            }
+        }
+        return ant.properties['elasticIsDown'] == null
     }
 }
