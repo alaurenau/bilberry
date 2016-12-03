@@ -117,10 +117,8 @@ class StartElasticAction {
                 "${paramPrefix}path.data=$dataDir",
                 "${paramPrefix}path.logs=$logsDir",
                 "${paramPrefix}network.host=127.0.0.1",
-                "${paramPrefix}http.cors.enabled=true",
                 "-p", "${pidFile}"
         ]
-
 
         if (isFamily(FAMILY_WINDOWS)) {
             environment += [
