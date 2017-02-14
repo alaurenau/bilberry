@@ -47,7 +47,11 @@ class StartElasticAction {
 
     @Input
     @Optional
-    List<String> withPlugins = ["head plugin"]
+    boolean hasPlugin = false;
+
+    @Input
+    @Optional
+    String pluginUrl;
 
     private Project project
     private AntBuilder ant
@@ -81,7 +85,10 @@ class StartElasticAction {
         }
 
         if (!elastic.installed) {
-            elastic.install(withPlugins)
+            elastic.install()
+        }
+        if(hasPlugin){
+            elastic.installPlugin(pluginUrl)
         }
 
         logger.lifecycle("${CYAN}* elastic:$NORMAL Starting ElasticSearch at $elastic.home, " +

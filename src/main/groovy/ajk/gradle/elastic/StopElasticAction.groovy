@@ -26,6 +26,15 @@ class StopElasticAction {
     @Optional
     String elasticVersion
 
+    @Input
+    @Optional
+    String pluginName = "placeholder-name"
+
+    @Input
+    @Optional
+    boolean hasPlugin = false
+
+
     private AntBuilder ant
     private Project project
     private Logger logger
@@ -76,6 +85,9 @@ class StopElasticAction {
                     pidFile.delete()
                 }
                 logger.lifecycle("${CYAN}* elastic:$NORMAL ElasticSearch is now down")
+            }
+            if(hasPlugin){
+                elastic.removePlugin(pluginName)
             }
         } catch (ConnectException e) {
             logger.error("${CYAN}* elastic:$YELLOW Unable to stop elastic on http port ${httpPort ?: 9200}, " +
